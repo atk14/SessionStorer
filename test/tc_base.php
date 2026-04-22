@@ -1,6 +1,9 @@
 <?php
 class TcBase extends TcSuperbase{
-	function setUp(){
+
+	var $dbmole;
+
+	function _setUp(){
 		global $_COOKIE, $dbmole;
 
 		if(!isset($_COOKIE)){ $_COOKIE = array(); }
@@ -9,7 +12,7 @@ class TcBase extends TcSuperbase{
 		$this->dbmole->begin();
 	}
 
-	function tearDown(){
+	function _tearDown(){
 		$this->dbmole->rollback();
 	}
 }
