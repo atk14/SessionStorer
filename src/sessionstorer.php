@@ -162,7 +162,7 @@ class SessionStorer{
 	 *
 	 * @var HttpRequest
 	 */
-	protected $_ExtraRequest = null;
+	protected $_Request = null;
 
 	/**
 	 * Instance of HttpResponse currently used.
@@ -246,7 +246,7 @@ class SessionStorer{
 
 		$options = array_merge(array(
 			"request" => null,
-			"response" => $GLOBALS["HTTP_RESPONSE"],
+			"response" => null,
 
 			"dbmole" => null,
 
@@ -261,6 +261,14 @@ class SessionStorer{
 			"current_time" => null,
 		),$options);
 
+		if(is_null($options["request"])){
+			$options["request"] = isset($GLOBALS["HTTP_REQUEST"]) ? $GLOBALS["HTTP_REQUEST"] : new HTTPRequest();
+		}
+
+		if(is_null($options["response"])){
+			$options["response"] = isset($GLOBALS["HTTP_RESPONSE"]) ? $GLOBALS["HTTP_RESPONSE"] : new HTTPResponse();
+		}
+
 		$options["cookie_name"] = str_replace("%session_name%",$options["session_name"],$options["cookie_name"]); // "_%session_name%_" -> "_ses_"
 		if($options["cookie_expiration"]==0 && !isset($options["max_lifetime"])){
 			$options["max_lifetime"] = SESSION_STORER_SESSION_MAX_LIFETIME;
@@ -271,7 +279,7 @@ class SessionStorer{
 
 		$this->_SessionName = (string)$options["session_name"];
 		$this->_Section = (string)$options["section"];
-		$this->_ExtraRequest = $options["request"];
+		$this->_Request = $options["request"];
 		$this->_response = $options["response"];
 
 		$this->_MaxLifetime = $options["max_lifetime"];
@@ -497,8 +505,7 @@ class SessionStorer{
 	 * @return HttpRequest
 	 */
 	protected function _getRequest(){
-		if($this->_ExtraRequest){ return $this->_ExtraRequest; }
-		return $GLOBALS["HTTP_REQUEST"];
+		return $this->_Request;
 	}
 
 	/**
