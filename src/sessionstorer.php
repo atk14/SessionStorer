@@ -650,14 +650,14 @@ class SessionStorer{
 
 		$c_name = $this->getCookieName();
 
-		$this->__addCookieValueToPairs($request->getCookieVar($c_name),$pairs);
+		$this->_addCookieValueToPairs($request->getCookieVar($c_name),$pairs);
 
 		// Cookie: check=1490347093; session=4881.a13fhJVULIxDlrnp97ogE8K4bmc0twQF; session=14227.J7vPy5fhDVcRd3KEnHeQrsqCSbFO6xal; session=650142.AobSw960vtlPzrq8eFH7ODRsVfhUpWMg; session=681433.ExdUe0wl12pTKysc26ShP27IKR93j0vW
 		$cookies = $request->getHeader("Cookie");
 		foreach(explode(";",(string)$cookies) as $c){
 			$ar = explode("=",trim($c));
 			if(urlencode($ar[0])==$c_name){
-				$this->__addCookieValueToPairs(urlencode($ar[1]),$pairs);
+				$this->_addCookieValueToPairs(urlencode($ar[1]),$pairs);
 			}
 		}
 
@@ -672,7 +672,7 @@ class SessionStorer{
 	 * @param string $cookie_val
 	 * @param array &$pairs
 	 */
-	protected function __addCookieValueToPairs($cookie_val,&$pairs){
+	protected function _addCookieValueToPairs($cookie_val,&$pairs){
 		$cookie_val = (string)$cookie_val;
 		if(strlen($cookie_val) && preg_match('/^([1-9][0-9]{0,20})\.([a-z0-9]{32})$/i',$cookie_val,$matches)){
 			if(sizeof($pairs)>20){
