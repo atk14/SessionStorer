@@ -730,10 +730,8 @@ class SessionStorer{
 				$this->_dbmole->doQuery("
 					UPDATE sessions SET last_access=:now WHERE
 						id=:id
-						-- AND last_access=:last_access
 				",array(
 					":id" => $this->_SessionId,
-					// ":last_access" => $row["last_access"],
 					":now" => $this->_getNow(),
 				));
 				if($this->getCookieExpiration()>0){
@@ -744,9 +742,6 @@ class SessionStorer{
 
 			return true;
 		}
-
-		//error_log("non existing session cookie found: $id.$security (".$request->getRemoteAddr().", ".$request->getUserAgent().")");
-		//$this->_clearSessionCookie();
 
 		return false;
 	}
@@ -936,12 +931,6 @@ class SessionStorer{
 		if(!is_null($httponly)){ $options["httponly"] = $httponly; }
 
 		$this->_response->addCookie(new HTTPCookie($name,$value,$options));
-
-		/*
-		if(defined("TEST") && TEST){
-			return @setcookie($name , $value, $expire, $path , $domain, $secure, $httponly);
-		}
-		return setcookie($name , $value, $expire, $path , $domain, $secure, $httponly); */
 	}
 
 	/**
