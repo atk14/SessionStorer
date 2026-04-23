@@ -128,7 +128,7 @@ class SessionStorer{
 	protected $_ValuesStore = array();
 
 	/**
-	 * A flag that thit object has been already initialized
+	 * A flag that this object has been already initialized
 	 *
 	 * @var boolean
 	 */
