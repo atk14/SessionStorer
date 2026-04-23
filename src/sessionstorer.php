@@ -1041,38 +1041,21 @@ class SessionStorer{
 
 		if(rand(1,20)!=2 && (!defined("TEST") || !constant("TEST"))){ return; } // HACK to improve speed
 
-		$bind_ar = array(
-			":min_last_access" => $this->_getIsoDateTime($this->_getCurrentTime() - $this->_MaxLifetime),
-			":session_name" => $this->getSessionName(),
-		);
-		//
-		$something_to_delete = $this->_dbmole->selectRow("
-			SELECT * FROM sessions WHERE
-				last_access<:min_last_access AND
-				session_name=:session_name
-			LIMIT 1	
-		",$bind_ar);
-		//
-		$something_to_delete && $this->_dbmole->doQuery("
+		$this->_dbmole->doQuery("
 			DELETE FROM sessions WHERE
 				last_access<:min_last_access AND
 				session_name=:session_name
-		",$bind_ar);
+		",array(
+			":min_last_access" => $this->_getIsoDateTime($this->_getCurrentTime() - $this->_MaxLifetime),
+			":session_name" => $this->getSessionName(),
+		));
 
-		$bind_ar = array(
-			":now" => $this->_getNow()
-		);
-		//
-		$something_to_delete = $this->_dbmole->selectRow("
-			SELECT * FROM session_values WHERE
-				expiration<:now
-			LIMIT 1	
-		",$bind_ar);
-		//
-		$something_to_delete && $this->_dbmole->doQuery("
+		$this->_dbmole->doQuery("
 			DELETE FROM session_values WHERE
 				expiration<:now
-		",$bind_ar);
+		",array(
+			":now" => $this->_getNow()
+		));
 	}
 
 	/**
