@@ -465,7 +465,7 @@ class SessionStorer{
 		}
 
 		if(isset($this->_SessionId)){
-			$this->_SessionSecurity = SessionStorer::_RandomString();
+			$this->_SessionSecurity = $this->_randomString();
 			$this->_dbmole->doQuery("UPDATE sessions SET security=:security WHERE id=:id",array(
 				":id" => $this->_SessionId,
 				":security" => $this->_SessionSecurity
@@ -507,7 +507,7 @@ class SessionStorer{
 	 * @param integer $length
 	 * @access protected
 	 */
-	static function _RandomString($length = 32){
+	protected function _randomString($length = 32){
 		return (string)String4::RandomString($length);
 	}
 
@@ -790,7 +790,7 @@ class SessionStorer{
 	 */
 	function _createNewDatabaseSession(){
 		$id = $this->_dbmole->selectSequenceNextval("seq_sessions");
-		$security = SessionStorer::_RandomString();
+		$security = $this->_randomString();
 		$request = $this->_getRequest();
 
 		$stat = $this->_dbmole->doQuery("
