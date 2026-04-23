@@ -352,7 +352,7 @@ class SessionStorer{
 	 * @return mixed
 	 */
 	function readValue($key){
-		settype($key,"string");
+		$key = (string)$key;
 
 		$this->_initialize();
 
@@ -371,9 +371,9 @@ class SessionStorer{
 	 * @param int $expiration number of seconds after which the value expires
 	 */
 	function writeValue($key,$value,$expiration = null){
-		settype($key,"string");
+		$key = (string)$key;
 		if(isset($expiration)){
-			settype($expiration,"integer");
+			$expiration = (integer)$expiration;
 		}
 
 		$this->_initialize();
@@ -1201,7 +1201,7 @@ class SessionStorer{
 	 * @return mixed
 	 */
 	protected function _unpackValue($packed_value){
-		settype($packed_value,"string");
+		$packed_value = (string)$packed_value;
 		if(strlen($packed_value)==0){
 			return null;
 		}
