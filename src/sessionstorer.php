@@ -99,7 +99,10 @@ class SessionStorer{
 	/**
 	 * Section name
 	 *
-	 * @todo explain
+	 * One physical session (identified by session_id) can contain multiple logical sections.
+	 * This allows different parts of an application (e.g. user area, admin area) to share
+	 * the same session record while keeping their key-value stores isolated.
+	 *
 	 * @var string
 	 */
 	protected $_Section = "default";
