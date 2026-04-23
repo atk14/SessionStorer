@@ -493,7 +493,7 @@ class SessionStorer{
 	 *
 	 * @return HttpRequest
 	 */
-	function _getRequest(){
+	protected function _getRequest(){
 		if($this->_ExtraRequest){ return $this->_ExtraRequest; }
 		return $GLOBALS["HTTP_REQUEST"];
 	}
