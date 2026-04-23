@@ -841,9 +841,9 @@ class SessionStorer{
 		$request = $this->_getRequest();
 
 		$_expire_time = $this->getCookieExpiration()==0 ? 0 : $this->_getCurrentTime() + $this->getCookieExpiration();
-		$_cokie_value = $this->getSecretToken();
+		$_cookie_value = $this->getSecretToken();
 		$cookie = $request->getCookie($this->getCookieName());
-		if(is_string($cookie) && $cookie==$_cokie_value && $this->getCookieExpiration()==0){
+		if(is_string($cookie) && $cookie==$_cookie_value && $this->getCookieExpiration()==0){
 			return true;
 		}
 
@@ -851,7 +851,7 @@ class SessionStorer{
 			return false;
 		}
 
-		return $this->_setCookie($this->getCookieName(),$_cokie_value,$_expire_time);
+		return $this->_setCookie($this->getCookieName(),$_cookie_value,$_expire_time);
 	}
 
 	/**
