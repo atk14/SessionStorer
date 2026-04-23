@@ -754,7 +754,7 @@ class SessionStorer{
 	/**
 	 * Checks if access time should be updated.
 	 *
-	 * Access time is updated every five minutes. This method decides if it is time to update it.
+	 * Access time is updated randomly between 4 and 12 minutes to spread database load.
 	 *
 	 * @param string $current_last_access
 	 * @return bool
@@ -781,11 +781,6 @@ class SessionStorer{
 		}
 
 		return false;
-
-		// sessions.last_access is being updated once a 5 minutes
-		if($this->_getCurrentTime()-strtotime($current_last_access)>=60*5){
-			return true;
-		}
 	}
 
 	/**
