@@ -207,6 +207,13 @@ class SessionStorer{
 	protected $_CookieExpiration = 0;
 
 	/**
+	 * When true, values are always stored in cookies and the database is never used.
+	 *
+	 * @var boolean
+	 */
+	protected $_CookieOnly = false;
+
+	/**
 	 * Time to which $_CookieExpiration is relative.
 	 *
 	 * @var integer
@@ -259,6 +266,8 @@ class SessionStorer{
 			"cookie_expiration" => 0,
 
 			"current_time" => null,
+
+			"cookie_only" => false,
 		),$options);
 
 		if(is_null($options["request"])){
@@ -288,6 +297,7 @@ class SessionStorer{
 		$this->_CookieExpiration = $options["cookie_expiration"];
 
 		$this->_ForceCurrentTime = $options["current_time"];
+		$this->_CookieOnly = (bool)$options["cookie_only"];
 
 		if($options["dbmole"]){
 			$this->_dbmole = $options["dbmole"];
@@ -399,6 +409,11 @@ class SessionStorer{
 
 			unset($this->_ValuesStore[$key]);
 
+		}
+
+		if($this->_CookieOnly){
+			$this->_writeDataToCookie($key);
+			return;
 		}
 
 		if(!$this->_isSessionInitializedInDatabase() && $this->cookiesEnabled() && SESSION_STORER_INITIALIZE_DATABASE_SESSION_EARLY){
@@ -553,6 +568,17 @@ class SessionStorer{
 		// the data cookies are meant to exist only in a single request
 		// so it`s perfectly fine to delete them here
 		$this->_clearDataCookies();
+
+		if($this->_CookieOnly){
+			foreach($this->_readCookieData() as $item){
+				if(!isset($item["data"])){
+					unset($this->_ValuesStore[$item["key"]]);
+				}else{
+					$this->_ValuesStore[$item["key"]] = $item["data"];
+				}
+			}
+			return;
+		}
 
 		if(
 			($pairs = $this->_obtainSessionIdAndSecurityPairs()) &&

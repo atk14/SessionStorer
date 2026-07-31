@@ -423,6 +423,34 @@ class TcSessionStorer extends TcBase{
 	}
 
 
+	function test_cookie_only(){
+		global $_COOKIE;
+
+		$_COOKIE = array();
+		$s = new SessionStorer([
+			"session_name" => "c_session",
+			"cookie_only" => true
+		]);
+		$s->writeValue("fruit","orange");
+		$s->writeValue("count",42);
+		$this->_add_cookies($s->getSentCookies(),$_COOKIE);
+
+		// values are readable within the same instance
+		$this->assertEquals("orange",$s->readValue("fruit"));
+		$this->assertEquals(42,$s->readValue("count"));
+
+		// values survive into the next request via cookies
+		$s2 = new SessionStorer([
+			"session_name" => "c_session",
+			"cookie_only" => true
+		]);
+		$this->assertEquals("orange",$s2->readValue("fruit"));
+		$this->assertEquals(42,$s2->readValue("count"));
+
+		// nothing was written to the database
+		$this->assertEquals(0,$this->dbmole->selectInt("SELECT COUNT(*) FROM sessions"));
+	}
+
 	function _add_cookies($send_cookies,&$store){
 		foreach($send_cookies as $item){
 			$store[$item[0]] = $item[1];
