@@ -1,6 +1,8 @@
 SessionStorer
 =============
 
+[![Tests](https://github.com/atk14/SessionStorer/actions/workflows/tests.yml/badge.svg)](https://github.com/atk14/SessionStorer/actions/workflows/tests.yml)
+
 A library for storing sessions in a database, used in the [ATK14 Framework](https://github.com/atk14).
 
 Installation
