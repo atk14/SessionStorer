@@ -625,7 +625,8 @@ class SessionStorer{
 			// well on the current index there is a check cookie, so the next one must contain a data or something is terribly wrong!
 
 			$item = $request->getCookie($this->getCookieName().($i+1));
-			if(!Packer::Unpack($item,$val)){ return array(); }
+			$class_name = get_class($this);
+			if(!Packer::Unpack($item,$val,["extra_salt" => "$class_name/$this->_SessionName"])){ return array(); }
 			if(!is_array($val) || array_keys($val)!=array("key","data")){ return array(); }
 			$out[] = $val;
 		}
@@ -1215,7 +1216,8 @@ class SessionStorer{
 		$this->_setCookie($this->getCookieName().$index,"check"); // only a check that a real value is on the next index
 		$index++;
 
-		$this->_setCookie($this->getCookieName().$index,Packer::Pack($val)); // _ses_0, _ses_1, _ses_2...
+		$class_name = get_class($this);
+		$this->_setCookie($this->getCookieName().$index,Packer::Pack($val,["extra_salt" => "$class_name/$this->_SessionName"])); // _ses_0, _ses_1, _ses_2...
 		$index++;
 	}
 
