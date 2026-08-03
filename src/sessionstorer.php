@@ -576,14 +576,14 @@ class SessionStorer{
 
 		$this->_Initialized = true;
 
-		// the data cookies are meant to exist only in a single request
-		// so it`s perfectly fine to delete them here
-		$this->_clearDataCookies();
-
 		if($this->_CookieOnly){
 			$this->_ValuesStore = $this->_readCookieData();
 			return;
 		}
+
+		// the data cookies are meant to exist only in a single request
+		// so it`s perfectly fine to delete them here
+		$this->_clearDataCookies();
 
 		if(
 			($pairs = $this->_obtainSessionIdAndSecurityPairs()) &&
@@ -640,6 +640,8 @@ class SessionStorer{
 		if(!Packer::Unpack($data_str,$data,["extra_salt" => "$class_name/$this->_SessionName"])){
 			return [];
 		}
+
+		$this->_CookieDataCount = $index;
 
 		$out = [];
 
