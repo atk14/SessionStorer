@@ -1228,6 +1228,11 @@ class SessionStorer{
 			$data[$key] = [$ar["packed_value"],$ar["expiration"]];
 		}
 
+		if(!$data){
+			$this->_clearCookie($this->getCookieName()."0");
+			return;
+		}
+
 		$class_name = get_class($this);
 		$data_str = Packer::Pack($data,["extra_salt" => "$class_name/$this->_SessionName"]);
 		$index = 0;
