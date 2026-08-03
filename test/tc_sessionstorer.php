@@ -444,6 +444,48 @@ class TcSessionStorer extends TcBase{
 		$this->assertEquals(0,sizeof($sent_cookies));
 	}
 
+	function test_cookie_data_count_cleanup(){
+		global $_COOKIE;
+
+		$opts = ["session_name" => "c_session", "cookie_only" => true, "disable_check_cookie" => true];
+
+		// Write large data — needs multiple cookies
+		$_COOKIE = [];
+		$s = new SessionStorer($opts);
+		$s->writeValue("big",str_repeat("a",10000));
+		$sent = $s->getSentCookies();
+		$this->assertTrue(sizeof($sent)>1);
+		$this->_add_cookies($sent,$_COOKIE);
+
+		// Shrink data in a new request — only cookie 0 needed
+		$s2 = new SessionStorer($opts);
+		$s2->writeValue("big","small");
+		$sent2 = $s2->getSentCookies();
+
+		$sent2_names = array_column($sent2,"0");
+
+		// cookie 0 must be set with new data
+		$this->assertTrue(in_array("c_session0",$sent2_names));
+
+		// cookies 1, 2, ... from previous write must be explicitly cleared (value = "")
+		$prev_cookie_count = sizeof($sent);
+		for($i=1;$i<$prev_cookie_count;$i++){
+			$found = false;
+			foreach($sent2 as $item){
+				if($item[0]==="c_session{$i}" && $item[1]===""){
+					$found = true;
+					break;
+				}
+			}
+			$this->assertTrue($found,"Cookie c_session{$i} should be cleared");
+		}
+
+		// Verify data is correct on next request
+		$this->_add_cookies($sent2,$_COOKIE);
+		$s3 = new SessionStorer($opts);
+		$this->assertEquals("small",$s3->readValue("big"));
+	}
+
 	function test_cookie_only(){
 		global $_COOKIE;
 

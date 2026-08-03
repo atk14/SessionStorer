@@ -142,6 +142,14 @@ class SessionStorer{
 	protected $_TokenChanged = false;
 
 	/**
+	 * Number of data cookies written by this instance in the current request.
+	 * Used to clear leftover cookies when fewer are needed than in a previous write.
+	 *
+	 * @var integer
+	 */
+	protected $_CookieDataCount = 0;
+
+	/**
 	 * Store for cookies sent by this object
 	 * For testing purposes.
 	 *
@@ -1228,24 +1236,30 @@ class SessionStorer{
 			$data[$key] = [$ar["packed_value"],$ar["expiration"]];
 		}
 
-		if(!$data){
-			$this->_clearCookie($this->getCookieName()."0");
-			return;
+		$new_count = 0;
+
+		if($data){
+			$class_name = get_class($this);
+			$data_str = Packer::Pack($data,["extra_salt" => "$class_name/$this->_SessionName"]);
+			$index = 0;
+			while(strlen($data_str)){
+				$cookie_val = $index === 0 ? strlen($data_str).":" : "";
+				$length = $COOKIE_MAX_LENGTH - strlen($cookie_val);
+				$cookie_val .= substr($data_str,0,$length);
+
+				$this->_setCookie($this->getCookieName().$index,$cookie_val); // _ses_0, _ses_1, _ses_2...
+
+				$data_str = substr($data_str,$length);
+				$index++;
+			}
+			$new_count = $index;
 		}
 
-		$class_name = get_class($this);
-		$data_str = Packer::Pack($data,["extra_salt" => "$class_name/$this->_SessionName"]);
-		$index = 0;
-		while(strlen($data_str)){
-			$cookie_val = $index === 0 ? strlen($data_str).":" : "";
-			$length = $COOKIE_MAX_LENGTH - strlen($cookie_val);
-			$cookie_val .= substr($data_str,0,$length);
-
-			$this->_setCookie($this->getCookieName().$index,$cookie_val); // _ses_0, _ses_1, _ses_2...
-
-			$data_str = substr($data_str,$length);
-			$index++;
+		for($i=$new_count; $i<$this->_CookieDataCount; $i++){
+			$this->_clearCookie($this->getCookieName().$i);
 		}
+
+		$this->_CookieDataCount = $new_count;
 	}
 
 	/**
