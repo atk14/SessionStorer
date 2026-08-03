@@ -462,7 +462,7 @@ class TcSessionStorer extends TcBase{
 		$s2->writeValue("big","small");
 		$sent2 = $s2->getSentCookies();
 
-		$sent2_names = array_column($sent2,"0");
+		$sent2_names = array_column($sent2,0);
 
 		// cookie 0 must be set with new data
 		$this->assertTrue(in_array("c_session0",$sent2_names));
