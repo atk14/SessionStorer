@@ -486,6 +486,43 @@ class TcSessionStorer extends TcBase{
 		$this->assertEquals("small",$s3->readValue("big"));
 	}
 
+	function test_cookie_data_cleared_when_all_values_deleted(){
+		global $_COOKIE;
+
+		$opts = ["session_name" => "c_session", "cookie_only" => true, "disable_check_cookie" => true];
+
+		// Write large data spanning multiple cookies
+		$_COOKIE = [];
+		$s = new SessionStorer($opts);
+		$s->writeValue("big",str_repeat("a",10000));
+		$sent = $s->getSentCookies();
+		$this->assertTrue(sizeof($sent)>1);
+		$this->_add_cookies($sent,$_COOKIE);
+
+		// In a new request, delete all values
+		$s2 = new SessionStorer($opts);
+		$s2->writeValue("big",null);
+		$sent2 = $s2->getSentCookies();
+
+		// All data cookies must be explicitly cleared (value = "")
+		$prev_count = sizeof($sent);
+		for($i=0;$i<$prev_count;$i++){
+			$found = false;
+			foreach($sent2 as $item){
+				if($item[0]==="c_session{$i}" && $item[1]===""){
+					$found = true;
+					break;
+				}
+			}
+			$this->assertTrue($found,"Cookie c_session{$i} should be cleared");
+		}
+
+		// Next request sees no values
+		$this->_add_cookies($sent2,$_COOKIE);
+		$s3 = new SessionStorer($opts);
+		$this->assertEquals(null,$s3->readValue("big"));
+	}
+
 	function test_cookie_only(){
 		global $_COOKIE;
 
