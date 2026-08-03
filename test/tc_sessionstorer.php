@@ -1,5 +1,6 @@
 <?php
 class TcSessionStorer extends TcBase{
+
 	function test_different_sections_on_same_session(){
 		global $_COOKIE;
 		$_COOKIE = array();
@@ -422,18 +423,47 @@ class TcSessionStorer extends TcBase{
 		HTTPCookie::DefaultOptions($defaults);
 	}
 
+	function test_disable_check_cookie(){
+		global $_COOKIE;
+
+		$_COOKIE = [];
+		$s = new SessionStorer([
+			"disable_check_cookie" => false,
+		]);
+
+		$sent_cookies = $s->getSentCookies();
+		$this->assertEquals(1,sizeof($sent_cookies));
+		$this->assertEquals("check",$sent_cookies[0][0]);
+
+		$_COOKIE = [];
+		$s = new SessionStorer([
+			"disable_check_cookie" => true,
+		]);
+
+		$sent_cookies = $s->getSentCookies();
+		$this->assertEquals(0,sizeof($sent_cookies));
+	}
 
 	function test_cookie_only(){
 		global $_COOKIE;
 
-		$_COOKIE = array();
+		$_COOKIE = [];
 		$s = new SessionStorer([
 			"session_name" => "c_session",
-			"cookie_only" => true
+			"cookie_only" => true,
+			"disable_check_cookie" => true,
 		]);
+		$this->assertEquals(0,sizeof($s->getSentCookies())); // Not even a check cookie is set
+
 		$s->writeValue("fruit","orange");
+		$this->assertEquals(1,sizeof($s->getSentCookies()));
+
 		$s->writeValue("count",42);
+		$this->assertEquals(2,sizeof($s->getSentCookies())); // Another writeValue call sets the same cookie with both values `fruit` and `count`
+
 		$this->_add_cookies($s->getSentCookies(),$_COOKIE);
+
+		$this->assertEquals(1,sizeof($_COOKIE));
 
 		// values are readable within the same instance
 		$this->assertEquals("orange",$s->readValue("fruit"));
@@ -442,10 +472,53 @@ class TcSessionStorer extends TcBase{
 		// values survive into the next request via cookies
 		$s2 = new SessionStorer([
 			"session_name" => "c_session",
-			"cookie_only" => true
+			"cookie_only" => true,
+			"disable_check_cookie" => true,
 		]);
+
 		$this->assertEquals("orange",$s2->readValue("fruit"));
 		$this->assertEquals(42,$s2->readValue("count"));
+		$s2->writeValue("long_text",str_repeat("a",10000));
+
+		$this->assertTrue(sizeof($s2->getSentCookies())>5);
+
+		$this->_add_cookies($s2->getSentCookies(),$_COOKIE);
+
+		$s3 = new SessionStorer([
+			"session_name" => "c_session",
+			"cookie_only" => true,
+			"disable_check_cookie" => true,
+		]);
+
+		$this->assertEquals("orange",$s3->readValue("fruit"));
+		$this->assertEquals(42,$s3->readValue("count"));
+		$this->assertEquals(str_repeat("a",10000),$s3->readValue("long_text"));
+
+		$s3->writeValue("long_text","b");
+
+		$this->_add_cookies($s3->getSentCookies(),$_COOKIE);
+
+		$s4 = new SessionStorer([
+			"session_name" => "c_session",
+			"cookie_only" => true,
+			"disable_check_cookie" => true,
+		]);
+
+		$this->assertEquals("orange",$s4->readValue("fruit"));
+		$this->assertEquals(42,$s4->readValue("count"));
+		$this->assertEquals("b",$s4->readValue("long_text"));
+
+		$this->_add_cookies($s3->getSentCookies(),$_COOKIE);
+
+		$s5 = new SessionStorer([
+			"session_name" => "c_session",
+			"cookie_only" => true,
+			"disable_check_cookie" => true,
+		]);
+
+		$this->assertEquals("orange",$s5->readValue("fruit"));
+		$this->assertEquals(42,$s5->readValue("count"));
+		$this->assertEquals("b",$s5->readValue("long_text"));
 
 		// nothing was written to the database
 		$this->assertEquals(0,$this->dbmole->selectInt("SELECT COUNT(*) FROM sessions"));

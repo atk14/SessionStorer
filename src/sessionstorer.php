@@ -142,14 +142,6 @@ class SessionStorer{
 	protected $_TokenChanged = false;
 
 	/**
-	 * Internal index for counting data entries sent by cookies
-	 * @see SessionStorer::_writeDataToCookie()
-	 *
-	 * @var integer
-	 */
-	protected $_CookieDataIndex = 0;
-
-	/**
 	 * Store for cookies sent by this object
 	 * For testing purposes.
 	 *
@@ -213,6 +205,8 @@ class SessionStorer{
 	 */
 	protected $_CookieOnly = false;
 
+	protected $_DisableCheckCookie = false;
+
 	/**
 	 * Time to which $_CookieExpiration is relative.
 	 *
@@ -268,6 +262,8 @@ class SessionStorer{
 			"current_time" => null,
 
 			"cookie_only" => false,
+
+			"disable_check_cookie" => false,
 		),$options);
 
 		if(is_null($options["request"])){
@@ -298,6 +294,8 @@ class SessionStorer{
 
 		$this->_ForceCurrentTime = $options["current_time"];
 		$this->_CookieOnly = (bool)$options["cookie_only"];
+
+		$this->_DisableCheckCookie = (bool)$options["disable_check_cookie"];
 
 		if($options["dbmole"]){
 			$this->_dbmole = $options["dbmole"];
@@ -412,7 +410,7 @@ class SessionStorer{
 		}
 
 		if($this->_CookieOnly){
-			$this->_writeDataToCookie($key);
+			$this->_writeDataToCookie();
 			return;
 		}
 
@@ -423,7 +421,7 @@ class SessionStorer{
 		if($this->_isSessionInitializedInDatabase()){
 			$this->_writeDataToDatabase($key);
 		}else{
-			$this->_writeDataToCookie($key);
+			$this->_writeDataToCookie();
 		}
 
 	}
@@ -538,7 +536,12 @@ class SessionStorer{
 	 */
 	function _setCheckCookieWhenNeeded(){
 		if(SESSION_STORER_COOKIE_NAME_CHECK==""){
-			// testing cookie is disabled
+			// check cookie is disabled by the constant
+			return;
+		}
+
+		if($this->_DisableCheckCookie){
+			// check cookie is disabled by the option
 			return;
 		}
 
@@ -570,13 +573,7 @@ class SessionStorer{
 		$this->_clearDataCookies();
 
 		if($this->_CookieOnly){
-			foreach($this->_readCookieData() as $item){
-				if(!isset($item["data"])){
-					unset($this->_ValuesStore[$item["key"]]);
-				}else{
-					$this->_ValuesStore[$item["key"]] = $item["data"];
-				}
-			}
+			$this->_ValuesStore = $this->_readCookieData();
 			return;
 		}
 
@@ -590,19 +587,8 @@ class SessionStorer{
 		}
 
 		// transfer data from cookie to database
-		if($data_ar = $this->_readCookieData()){
+		if($this->_ValuesStore = $this->_readCookieData()){
 			$this->_createNewDatabaseSession();
-
-			foreach($data_ar as $item){
-				$key = $item["key"];
-				$data = $item["data"];
-				if(!isset($data)){
-					$this->writeValue($key,null);
-					unset($this->_ValuesStore[$key]);
-				}else{
-					$this->_ValuesStore[$key] = $data;
-				}
-			}
 
 			// store all data into database
 			foreach(array_keys($this->_ValuesStore) as $key){
@@ -617,20 +603,52 @@ class SessionStorer{
 	 * @access protected  
 	 */
 	function _readCookieData(){
-		$out = array();
 		$request = $this->_getRequest();
 
-		for($i=0;$i<100;$i+=2){
-			if($request->getCookie($this->getCookieName().$i)!="check"){ break; }
-			// well on the current index there is a check cookie, so the next one must contain a data or something is terribly wrong!
+		$name = $this->getCookieName();
 
-			$item = $request->getCookie($this->getCookieName().($i+1));
-			$class_name = get_class($this);
-			if(!Packer::Unpack($item,$val,["extra_salt" => "$class_name/$this->_SessionName"])){ return array(); }
-			if(!is_array($val) || array_keys($val)!=array("key","data")){ return array(); }
-			$out[] = $val;
+		$cookie = $request->getCookie("{$name}0");
+		if(!$cookie || !preg_match('/^([1-9][0-9]*):(.+)$/',$cookie,$matches)){
+			return [];
 		}
-		
+
+		$length = (int)$matches[1];
+		$data_str = $matches[2];
+		$index = 1;
+		while(strlen($data_str)<$length){
+			$cookie = $request->getCookie("{$name}{$index}");
+			if(!$cookie){ return []; }
+
+			$data_str .= $cookie;
+
+			$index++;
+		}
+
+		if(strlen($data_str)!==$length){
+			return [];
+		}
+
+		$class_name = get_class($this);
+		if(!Packer::Unpack($data_str,$data,["extra_salt" => "$class_name/$this->_SessionName"])){
+			return [];
+		}
+
+		$out = [];
+
+		$current_time = $this->_getCurrentTime();
+		foreach($data as $k => $ar){
+			$expiration = $ar[1];
+
+			if(!is_null($expiration) && $expiration<$current_time){
+				continue;
+			}
+
+			$out[$k] = [
+				"packed_value" => $ar[0],
+				"expiration" => $ar[1],
+			];
+		}
+
 		return $out;
 	}
 
@@ -1200,25 +1218,29 @@ class SessionStorer{
 	 * Writes data entry to cookie
 	 *
 	 * Write value to cookie
-	 * 	$this->_writeDataToCookie("logged_user_id");
-	 *
-	 * @param string $key
+	 * 	$this->_writeDataToCookie();
 	 */
-	protected function _writeDataToCookie($key){
+	protected function _writeDataToCookie(){
+		$COOKIE_MAX_LENGTH = 3000;
 
-		$val = array(
-			"key" => $key,
-			"data" => isset($this->_ValuesStore[$key]) ? $this->_ValuesStore[$key] : null
-		);
-
-		$index = &$this->_CookieDataIndex;
-
-		$this->_setCookie($this->getCookieName().$index,"check"); // only a check that a real value is on the next index
-		$index++;
+		$data = [];
+		foreach($this->_ValuesStore as $key => $ar){
+			$data[$key] = [$ar["packed_value"],$ar["expiration"]];
+		}
 
 		$class_name = get_class($this);
-		$this->_setCookie($this->getCookieName().$index,Packer::Pack($val,["extra_salt" => "$class_name/$this->_SessionName"])); // _ses_0, _ses_1, _ses_2...
-		$index++;
+		$data_str = Packer::Pack($data,["extra_salt" => "$class_name/$this->_SessionName"]);
+		$index = 0;
+		while(strlen($data_str)){
+			$cookie_val = $index === 0 ? strlen($data_str).":" : "";
+			$length = $COOKIE_MAX_LENGTH - strlen($cookie_val);
+			$cookie_val .= substr($data_str,0,$length);
+
+			$this->_setCookie($this->getCookieName().$index,$cookie_val); // _ses_0, _ses_1, _ses_2...
+
+			$data_str = substr($data_str,$length);
+			$index++;
+		}
 	}
 
 	/**
