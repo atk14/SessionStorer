@@ -587,6 +587,7 @@ class TcSessionStorer extends TcBase{
 		$this->assertEquals(42,$s4->readValue("count"));
 		$this->assertEquals("b",$s4->readValue("long_text"));
 
+		$this->assertEquals(0,sizeof($s4->getSentCookies()));
 		$this->_add_cookies($s4->getSentCookies(),$_COOKIE);
 
 		$s5 = new SessionStorer([
