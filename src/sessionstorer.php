@@ -581,7 +581,7 @@ class SessionStorer{
 			return;
 		}
 
-		// the data cookies are meant to exist only in a single request
+		// For not cookie-only sessions, the data cookies are meant to exist only in the first request
 		// so it`s perfectly fine to delete them here
 		$this->_clearDataCookies();
 
