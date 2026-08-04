@@ -577,7 +577,10 @@ class SessionStorer{
 		$this->_Initialized = true;
 
 		if($this->_CookieOnly){
-			$this->_ValuesStore = $this->_readCookieData();
+			$this->_ValuesStore = $this->_readCookieData($has_expired_entries);
+			if($has_expired_entries){
+				$this->_writeDataToCookie();
+			}
 			return;
 		}
 
@@ -610,7 +613,8 @@ class SessionStorer{
 	 *
 	 * @access protected  
 	 */
-	function _readCookieData(){
+	function _readCookieData(&$has_expired_entries = null){
+		$has_expired_entries = false;
 		$request = $this->_getRequest();
 
 		$name = $this->getCookieName();
@@ -650,6 +654,7 @@ class SessionStorer{
 			$expiration = $ar[1];
 
 			if(!is_null($expiration) && $expiration<$current_time){
+				$has_expired_entries = true;
 				continue;
 			}
 

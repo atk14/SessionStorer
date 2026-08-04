@@ -486,6 +486,36 @@ class TcSessionStorer extends TcBase{
 		$this->assertEquals("small",$s3->readValue("big"));
 	}
 
+	function test_cookie_only_expiration(){
+		global $_COOKIE;
+
+		$opts = ["session_name" => "c_session", "cookie_only" => true, "disable_check_cookie" => true, "current_time" => CURRENT_TIME];
+
+		$_COOKIE = [];
+		$s = new SessionStorer($opts);
+		$s->writeValue("permanent","here forever");
+		$s->writeValue("temporary","gone soon", 60); // expires in 60 seconds
+		$this->_add_cookies($s->getSentCookies(),$_COOKIE);
+
+		// before expiration - both values readable
+		$s2 = new SessionStorer($opts);
+		$this->assertEquals("here forever",$s2->readValue("permanent"));
+		$this->assertEquals("gone soon",$s2->readValue("temporary"));
+
+		// after expiration - only permanent value readable
+		$s3 = new SessionStorer(array_merge($opts,["current_time" => CURRENT_TIME + 120]));
+		$this->assertEquals("here forever",$s3->readValue("permanent"));
+		$this->assertEquals(null,$s3->readValue("temporary"));
+
+		// s3 rewrites cookies to drop the expired entry even without an explicit writeValue
+		$this->assertTrue(sizeof($s3->getSentCookies())>0);
+		$this->_add_cookies($s3->getSentCookies(),$_COOKIE);
+
+		$s4 = new SessionStorer(array_merge($opts,["current_time" => CURRENT_TIME + 120]));
+		$this->assertEquals("here forever",$s4->readValue("permanent"));
+		$this->assertEquals(null,$s4->readValue("temporary"));
+	}
+
 	function test_cookie_data_cleared_when_all_values_deleted(){
 		global $_COOKIE;
 
