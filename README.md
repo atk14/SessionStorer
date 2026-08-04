@@ -3,7 +3,7 @@ SessionStorer
 
 [![Tests](https://github.com/atk14/SessionStorer/actions/workflows/tests.yml/badge.svg)](https://github.com/atk14/SessionStorer/actions/workflows/tests.yml)
 
-A library for storing sessions in a database, used in the [ATK14 Framework](https://github.com/atk14).
+A library for storing sessions in a database or in cookies, used in the [ATK14 Framework](https://github.com/atk14).
 
 Installation
 ------------
@@ -21,6 +21,23 @@ $session = new SessionStorer();
 $session->writeValue("user_id", 42);
 $user_id = $session->readValue("user_id"); // 42
 ```
+
+Cookie-only mode
+----------------
+
+When a database is not available or not desired, values can be stored exclusively in cookies by passing `cookie_only => true`. The data never touches the database.
+
+```php
+$session = new SessionStorer([
+    "session_name" => "cart",
+    "cookie_only" => true,
+]);
+
+$session->writeValue("step", 2);
+$step = $session->readValue("step"); // 2
+```
+
+Values are packed into one or more numbered cookies (`cart0`, `cart1`, …) with a length prefix in the first cookie. The packed data is encrypted and signed via `Packer::Pack()`, making it resistant to tampering by the client. Expired values are automatically removed from cookies on the next read.
 
 Sessions cleanup (cron job)
 ---------------------------
