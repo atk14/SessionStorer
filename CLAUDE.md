@@ -28,8 +28,12 @@ Each test method wraps in a transaction that is rolled back in `_tearDown()` (se
 ### Hybrid cookie/database storage
 
 Values are stored in two stages:
-1. **Before a valid session cookie exists**: values are serialized (via `Packer::Pack`) and written directly into numbered cookies (`_ses_0`, `_ses_1`, etc.) as a temporary measure.
+1. **Before a valid session cookie exists**: all current values are serialized (via `Packer::Pack`) and written into one or more numbered cookies (`_ses_0`, `_ses_1`, …) as a temporary measure. The first cookie carries a length prefix (`<length>:<data>`); additional cookies continue the data. This is a single-request measure — the cookies are cleared at the start of the next request once a DB session is established.
 2. **After a database session is established**: values migrate from cookies to the `session_values` table, and the session is identified by a cookie containing `{session_id}.{security_token}`.
+
+### Cookie-only mode
+
+Passing `"cookie_only" => true` disables the database entirely. All values are stored in numbered cookies for the lifetime of the session. The packed data includes an `extra_salt` derived from the class name and session name to prevent cross-session data reuse. Expired values are automatically removed from cookies on the next read (triggering a cookie rewrite even without an explicit `writeValue` call). Use `"disable_check_cookie" => true` alongside to suppress the check cookie.
 
 ### Database schema
 
@@ -62,6 +66,8 @@ All constants have defaults and should be defined before including the library:
 | `SESSION_STORER_AUTO_GARBAGE_COLLECTION` | `true` | Random 1-in-20 GC on write |
 | `SESSION_STORER_SET_COOKIES_ONLY_ON_SSL_BY_DEFAULT` | `false` | Force HTTPS cookies |
 | `SESSION_STORER_INITIALIZE_DATABASE_SESSION_EARLY` | `false` | Create DB session before first write |
+
+Constructor also accepts instance-level options (not constants): `cookie_only` (bool, default `false`) and `disable_check_cookie` (bool, default `false`).
 
 In tests, `CURRENT_TIME` constant is used to control time (instead of `time()`), allowing time-travel in tests.
 
